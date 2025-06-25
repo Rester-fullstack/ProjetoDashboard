@@ -1,0 +1,118 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 30px;
+        }
+
+        .charts-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+        }
+
+        canvas {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 600px;
+            height: 300px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Dashboard de Vendas e Usuários Ativos</h1>
+
+    <div class="charts-container">
+        <canvas id="vendasChart"></canvas>
+        <canvas id="usuariosChart"></canvas>
+    </div>
+
+    <script>
+        async function fetchData(url) {
+            try {
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('Erro na requisição');
+                return await res.json();
+            } catch (e) {
+                console.error(e);
+                return [];
+            }
+        }
+
+        function formatDate(dateStr) {
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+        }
+
+        async function renderCharts() {
+            const vendas = await fetchData('/api/dashboard/vendas');
+            const usuarios = await fetchData('/api/dashboard/usuariosativos');
+
+            if (!vendas.length || !usuarios.length) {
+                console.log('Sem dados para mostrar');
+                return;
+            }
+
+            const vendasLabels = vendas.map(v => formatDate(v.dataVenda));
+            const vendasData = vendas.map(v => v.valor);
+
+            const usuariosLabels = usuarios.map(u => formatDate(u.data));
+            const usuariosData = usuarios.map(u => u.quantidade);
+
+            new Chart(document.getElementById('vendasChart'), {
+                type: 'line',
+                data: {
+                    labels: vendasLabels,
+                    datasets: [{
+                        label: 'Vendas diárias (R$)',
+                        data: vendasData,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59,130,246,0.3)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+
+            new Chart(document.getElementById('usuariosChart'), {
+                type: 'bar',
+                data: {
+                    labels: usuariosLabels,
+                    datasets: [{
+                        label: 'Usuários ativos',
+                        data: usuariosData,
+                        backgroundColor: '#10b981',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+        }
+
+        renderCharts();
+    </script>
+</body>
+</html>
